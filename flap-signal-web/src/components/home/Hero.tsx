@@ -1,4 +1,24 @@
+import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+
 export const Hero = () => {
+  const [inputValue, setInputValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
+
+  const handleSend = () => {
+    const text = inputValue.trim();
+    if (!text) {
+      inputRef.current?.focus();
+      return;
+    }
+    navigate('/chat', { state: { initialMessage: text } });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') handleSend();
+  };
+
   return (
     <section className="relative min-h-screen flex flex-col items-center justify-center pt-24 px-6 overflow-hidden">
       {/* Real Animated Video Container */}
@@ -66,8 +86,19 @@ export const Hero = () => {
             </div>
           </div>
           <div className="relative mt-4">
-            <input className="w-full bg-surface-container-lowest/50 border border-outline-variant/10 focus:ring-2 focus:ring-secondary/40 focus:border-secondary transition-all text-on-surface p-4 pr-12 rounded-xl text-sm placeholder:text-neutral-600" placeholder="Find me the next 100x..." type="text"/>
-            <button className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-on-primary hover:scale-110 transition-transform">
+            <input
+              ref={inputRef}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-surface-container-lowest/50 border border-outline-variant/10 focus:ring-2 focus:ring-secondary/40 focus:border-secondary transition-all text-on-surface p-4 pr-12 rounded-xl text-sm placeholder:text-neutral-600"
+              placeholder="Find me the next 100x..."
+              type="text"
+            />
+            <button
+              onClick={handleSend}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg bg-primary-container flex items-center justify-center text-on-primary hover:scale-110 transition-transform"
+            >
               <span className="material-symbols-outlined text-base">send</span>
             </button>
           </div>

@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
-import { Send, Clock, Cpu, Activity, Menu, X, Plus, MessageSquare } from 'lucide-react';
+import { Send, Clock, Cpu, Activity, Menu, X, Plus, MessageSquare, Trash2 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 
 interface Message {
   id: string;
@@ -96,6 +97,8 @@ export const Chat = () => {
   const [activeToken, setActiveToken] = useState('');
   const [dexDataCache, setDexDataCache] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const location = useLocation();
+  const initialMessageSentRef = useRef(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -104,7 +107,6 @@ export const Chat = () => {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        // Convert string dates back to Date objects
         parsed.forEach((s: any) => {
           s.messages.forEach((m: any) => m.timestamp = new Date(m.timestamp));
         });
@@ -122,6 +124,17 @@ export const Chat = () => {
       startNewSession();
     }
   }, []);
+
+  // Auto-send message passed from Hero chat input
+  useEffect(() => {
+    const msg = location.state?.initialMessage as string | undefined;
+    if (msg && !initialMessageSentRef.current) {
+      initialMessageSentRef.current = true;
+      // Wait for session to be ready then auto-send
+      const timer = setTimeout(() => handleSendString(msg), 600);
+      return () => clearTimeout(timer);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     if (currentSessionId && messages.length > 0) {
@@ -155,6 +168,18 @@ export const Chat = () => {
     setMessages([{ ...DEFAULT_WELCOME_MSG, id: Date.now().toString(), timestamp: new Date() }]);
     setChatStep('AWAITING_TOKEN');
     if (window.innerWidth < 768) setIsSidebarOpen(false);
+  };
+
+  const deleteSession = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setSessions(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      localStorage.setItem('flap_session_store', JSON.stringify(updated));
+      return updated;
+    });
+    if (currentSessionId === id) {
+      startNewSession();
+    }
   };
 
   const loadSession = (id: string) => {
@@ -410,7 +435,7 @@ export const Chat = () => {
             >
               <div className="flex items-start gap-3">
                 <MessageSquare size={14} className={`mt-1 shrink-0 ${currentSessionId === session.id ? 'text-secondary' : 'text-neutral-500 group-hover:text-neutral-300'}`} />
-                <div className="overflow-hidden">
+                <div className="overflow-hidden flex-1">
                   <div className={`text-sm font-medium truncate ${currentSessionId === session.id ? 'text-white' : 'text-neutral-300'}`}>
                     {session.title}
                   </div>
@@ -418,6 +443,13 @@ export const Chat = () => {
                     {formatRelativeTime(session.updatedAt)}
                   </div>
                 </div>
+                <button
+                  onClick={(e) => deleteSession(e, session.id)}
+                  className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-lg hover:bg-rose-500/20 hover:text-rose-400 text-neutral-600"
+                  title="Delete chat"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             </div>
           ))}
