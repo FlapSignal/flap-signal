@@ -1,0 +1,51 @@
+# ─── Dependencies ──────────────────────────────────────────────────────────────
+flap-signal-web/node_modules/
+node_modules/
+
+# ─── Build Outputs ─────────────────────────────────────────────────────────────
+flap-signal-web/dist/
+flap-signal-web/dist-ssr/
+dist/
+dist-ssr/
+
+# ─── Vercel ────────────────────────────────────────────────────────────────────
+flap-signal-web/.vercel/
+.vercel/
+
+# ─── Environment Variables ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.local
+
+# ─── Logs ──────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─── Lock Files (optional, uncomment if you want to exclude) ───────────────────
+# flap-signal-web/package-lock.json
+# flap-signal-web/yarn.lock
+
+# ─── Editor & OS ───────────────────────────────────────────────────────────────
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ─── Misc ──────────────────────────────────────────────────────────────────────
+*.tsbuildinfo
+.cache/
+.temp/
