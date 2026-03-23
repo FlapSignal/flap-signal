@@ -4,13 +4,26 @@ import ReactMarkdown from 'react-markdown';
 import { Send, Clock, Cpu, Activity, Menu, X, Plus, MessageSquare, Trash2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
+interface PairOption {
+  symbol: string;
+  name: string;
+  chainId: string;
+  dexId: string;
+  priceUsd: string | null;
+  volume24h: number;
+  liquidity: number;
+  pairAddress: string;
+  rawPairData: any;
+}
+
 interface Message {
   id: string;
   sender: 'user' | 'ai';
   content: string;
   timestamp: Date;
   isProcessing?: boolean;
-  timeframeOptions?: string[]; 
+  timeframeOptions?: string[];
+  tokenOptions?: PairOption[];
 }
 
 interface ChatSession {
@@ -93,7 +106,7 @@ export const Chat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [chatStep, setChatStep] = useState<'AWAITING_TOKEN' | 'AWAITING_TIMEFRAME'>('AWAITING_TOKEN');
+  const [chatStep, setChatStep] = useState<'AWAITING_TOKEN' | 'AWAITING_TOKEN_SELECT' | 'AWAITING_TIMEFRAME'>('AWAITING_TOKEN');
   const [activeToken, setActiveToken] = useState('');
   const [dexDataCache, setDexDataCache] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -215,7 +228,7 @@ export const Chat = () => {
       id: processingId,
       sender: 'ai',
       isProcessing: true,
-      content: `Connecting to on-chain nodes to scan ${tokenQuery}...`,
+      content: `Scanning on-chain nodes for ${tokenQuery}...`,
       timestamp: new Date()
     }]);
     scrollToBottom();
@@ -223,22 +236,58 @@ export const Chat = () => {
     try {
       const dexRes = await fetch(`https://api.dexscreener.com/latest/dex/search?q=${tokenQuery.replace('$', '')}`);
       const data = await dexRes.json();
-      
       setMessages(prev => prev.filter(m => m.id !== processingId));
 
       if (data.pairs && data.pairs.length > 0) {
-        const pair = data.pairs[0];
-        setDexDataCache(data);
-        setActiveToken(tokenQuery);
-        setChatStep('AWAITING_TIMEFRAME');
-        
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 2).toString(),
-          sender: 'ai',
-          content: `Data localized: **${pair.baseToken.symbol}** / **${pair.quoteToken.symbol}** (${pair.chainId.toUpperCase()}).\nPlease specify your analytical timeframe:`,
-          timeframeOptions: TIMEFRAMES,
-          timestamp: new Date()
-        }]);
+        // Deduplicate: one best pair per (symbol + chainId), ranked by liquidity
+        const seen = new Map<string, any>();
+        for (const p of data.pairs) {
+          const key = `${p.baseToken.symbol.toLowerCase()}-${p.chainId}`;
+          const liq = p.liquidity?.usd ?? 0;
+          if (!seen.has(key) || liq > (seen.get(key).liquidity?.usd ?? 0)) {
+            seen.set(key, p);
+          }
+        }
+
+        const options: PairOption[] = Array.from(seen.values())
+          .sort((a, b) => (b.volume?.h24 ?? 0) - (a.volume?.h24 ?? 0))
+          .slice(0, 5)
+          .map(p => ({
+            symbol: p.baseToken.symbol,
+            name: p.baseToken.name,
+            chainId: p.chainId,
+            dexId: p.dexId,
+            priceUsd: p.priceUsd ?? null,
+            volume24h: p.volume?.h24 ?? 0,
+            liquidity: p.liquidity?.usd ?? 0,
+            pairAddress: p.pairAddress,
+            rawPairData: p,
+          }));
+
+        if (options.length === 1) {
+          // Only one unique token/chain — proceed directly
+          const pair = options[0].rawPairData;
+          setDexDataCache(data);
+          setActiveToken(tokenQuery);
+          setChatStep('AWAITING_TIMEFRAME');
+          setMessages(prev => [...prev, {
+            id: (Date.now() + 2).toString(),
+            sender: 'ai',
+            content: `Data localized: **${pair.baseToken.symbol}** / **${pair.quoteToken.symbol}** (${pair.chainId.toUpperCase()}).\nPlease specify your analytical timeframe:`,
+            timeframeOptions: TIMEFRAMES,
+            timestamp: new Date()
+          }]);
+        } else {
+          // Multiple tokens across chains — ask user to confirm which one
+          setChatStep('AWAITING_TOKEN_SELECT');
+          setMessages(prev => [...prev, {
+            id: (Date.now() + 2).toString(),
+            sender: 'ai',
+            content: `Multiple tokens detected for **${tokenQuery}**. Select the correct one to analyze:`,
+            tokenOptions: options,
+            timestamp: new Date()
+          }]);
+        }
       } else {
         setMessages(prev => [...prev, {
           id: (Date.now() + 2).toString(),
@@ -347,6 +396,30 @@ export const Chat = () => {
     setChatStep('AWAITING_TOKEN'); 
     setIsTyping(true);
     await triggerAISequence(activeToken, tf);
+  };
+
+  const handleTokenSelect = async (option: PairOption) => {
+    if (chatStep !== 'AWAITING_TOKEN_SELECT') return;
+    setMessages(prev => prev.map(m => m.tokenOptions ? { ...m, tokenOptions: undefined } : m));
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      sender: 'user',
+      content: `${option.symbol} on ${option.chainId.toUpperCase()}`,
+      timestamp: new Date()
+    }]);
+    scrollToBottom();
+    // Store just the selected pair wrapped in the expected shape
+    setDexDataCache({ pairs: [option.rawPairData] });
+    setActiveToken(option.symbol);
+    setChatStep('AWAITING_TIMEFRAME');
+    setMessages(prev => [...prev, {
+      id: (Date.now() + 1).toString(),
+      sender: 'ai',
+      content: `Token confirmed: **${option.name} (${option.symbol})** on **${option.chainId.toUpperCase()}**.\nPlease select your analytical timeframe:`,
+      timeframeOptions: TIMEFRAMES,
+      timestamp: new Date()
+    }]);
+    scrollToBottom();
   };
 
   const triggerAISequence = async (token: string, timeframe: string) => {
@@ -538,6 +611,38 @@ export const Chat = () => {
                           ))}
                         </div>
                       )}
+                      {msg.tokenOptions && (
+                        <div className="mt-4 flex flex-col gap-2">
+                          {msg.tokenOptions.map(opt => (
+                            <button
+                              key={`${opt.symbol}-${opt.chainId}-${opt.pairAddress}`}
+                              onClick={() => handleTokenSelect(opt)}
+                              className="w-full text-left px-4 py-3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-secondary/30 transition-all group"
+                            >
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className="font-bold text-white text-sm">{opt.symbol}</span>
+                                  <span className="text-neutral-400 text-xs truncate">{opt.name}</span>
+                                </div>
+                                <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  opt.chainId === 'bsc' ? 'bg-yellow-500/20 text-yellow-400' :
+                                  opt.chainId === 'ethereum' ? 'bg-blue-500/20 text-blue-400' :
+                                  opt.chainId === 'solana' ? 'bg-purple-500/20 text-purple-400' :
+                                  opt.chainId === 'base' ? 'bg-sky-500/20 text-sky-400' :
+                                  opt.chainId === 'arbitrum' ? 'bg-indigo-500/20 text-indigo-400' :
+                                  'bg-white/10 text-neutral-300'
+                                }`}>{opt.chainId.toUpperCase()}</span>
+                              </div>
+                              <div className="flex gap-3 mt-1.5 text-[10px] text-neutral-500">
+                                {opt.priceUsd && <span>${parseFloat(opt.priceUsd) >= 1 ? parseFloat(opt.priceUsd).toLocaleString(undefined,{maximumFractionDigits:2}) : parseFloat(opt.priceUsd).toFixed(6)}</span>}
+                                {opt.volume24h > 0 && <span>Vol 24h: ${opt.volume24h >= 1e6 ? (opt.volume24h/1e6).toFixed(1)+'M' : (opt.volume24h/1e3).toFixed(0)+'K'}</span>}
+                                {opt.liquidity > 0 && <span>Liq: ${opt.liquidity >= 1e6 ? (opt.liquidity/1e6).toFixed(1)+'M' : (opt.liquidity/1e3).toFixed(0)+'K'}</span>}
+                                <span className="ml-auto capitalize opacity-60">{opt.dexId}</span>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className={`text-[10px] mt-2 opacity-50 ${msg.sender === 'user' ? 'text-right' : 'text-left'}`}>
@@ -557,8 +662,8 @@ export const Chat = () => {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSendString(inputValue)}
-              placeholder={chatStep === 'AWAITING_TOKEN' ? "Ask Oracle or scan Ticker (e.g. BTC)..." : "Specify timeframe..."}
-              disabled={isTyping || chatStep === 'AWAITING_TIMEFRAME'}
+              placeholder={chatStep === 'AWAITING_TOKEN' ? "Ask Oracle or scan Ticker (e.g. BTC)..." : chatStep === 'AWAITING_TOKEN_SELECT' ? "Select a token above..." : "Specify timeframe..."}
+              disabled={isTyping || chatStep === 'AWAITING_TIMEFRAME' || chatStep === 'AWAITING_TOKEN_SELECT'}
               className="w-full bg-surface-container-lowest border border-outline-variant/20 focus:ring-1 focus:ring-secondary/50 focus:border-secondary transition-all text-on-surface py-3 px-4 pr-[3.5rem] rounded-2xl text-sm placeholder:text-neutral-500 font-medium disabled:opacity-50"
             />
             <button 
