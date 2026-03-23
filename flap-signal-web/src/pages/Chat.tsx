@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { Send, Clock, Cpu, Activity, Menu, X, Plus, MessageSquare } from 'lucide-react';
@@ -387,7 +387,7 @@ export const Chat = () => {
       >
         <div className="flex justify-between items-center mb-2 px-2">
           <h3 className="font-space-grotesk font-bold text-sm text-neutral-400 uppercase tracking-widest flex items-center gap-2">
-            <Activity size={14} className="text-secondary" /> LTM Memory
+            <Activity size={14} className="text-secondary" /> History
           </h3>
           <button className="md:hidden text-neutral-400 hover:text-white" onClick={() => setIsSidebarOpen(false)}>
             <X size={20} />
@@ -422,7 +422,7 @@ export const Chat = () => {
             </div>
           ))}
           {sessions.length === 0 && (
-            <div className="text-center text-xs text-neutral-600 mt-10">No profound memories yet.</div>
+            <div className="text-center text-xs text-neutral-600 mt-10">No history yet.</div>
           )}
         </div>
       </motion.div>

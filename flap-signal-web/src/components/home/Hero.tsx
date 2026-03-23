@@ -16,10 +16,7 @@ export const Hero = () => {
       </div>
       
       <div className="relative z-30 text-center max-w-4xl mx-auto space-y-8 mb-12">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-secondary-container/40 bg-secondary-container/10 text-secondary text-xs font-space-grotesk tracking-widest uppercase mb-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-secondary-container animate-pulse"></span>
-          Introducing Flap Signal — Built on BSC
-        </div>
+
         <h1 className="font-headline text-4xl md:text-7xl font-bold leading-[1.08] tracking-tight text-on-surface">
           The First AI-Powered<br className="hidden md:block" /> Trading Oracle for{' '}
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-container to-secondary-container">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
@@ -66,7 +66,7 @@ export const Navbar = () => {
   ];
 
   return (
-    <nav className="fixed top-0 w-full z-[100] bg-surface/40 backdrop-blur-xl border-b border-outline-variant/10">
+    <nav className="fixed top-0 w-full z-[100] bg-surface/40 backdrop-blur-xl">
       <div className="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
         <div 
           className="text-2xl font-bold tracking-tighter text-cyan-400 font-space-grotesk flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform"
