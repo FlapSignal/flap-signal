@@ -240,12 +240,15 @@ export const Chat = () => {
 
       if (data.pairs && data.pairs.length > 0) {
         const cleanQuery = tokenQuery.replace('$', '').toLowerCase();
+        
+        // Define aliases for native tokens (BNB -> WBNB, ETH -> WETH, etc.)
+        const expectedWrapped = cleanQuery.startsWith('w') ? cleanQuery : `w${cleanQuery}`;
 
-        // Step 1: Prefer pairs where the BASE token exactly matches the query
-        // (catches native BNB, ETH, BTC etc. rather than pairs where they are quote tokens)
-        const nativePairs = data.pairs.filter((p: any) =>
-          p.baseToken.symbol.toLowerCase() === cleanQuery
-        );
+        // Step 1: Prefer pairs where the BASE token exactly matches the query or its wrapped version
+        const nativePairs = data.pairs.filter((p: any) => {
+          const baseSym = p.baseToken.symbol.toLowerCase();
+          return baseSym === cleanQuery || baseSym === expectedWrapped;
+        });
 
         // Fall back to all pairs if no exact base-token match (e.g. CA/address lookup)
         const workingPairs = nativePairs.length > 0 ? nativePairs : data.pairs;
