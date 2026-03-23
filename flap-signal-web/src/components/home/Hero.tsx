@@ -27,14 +27,13 @@ export const Hero = () => {
           Flap Signal is a hyper-intelligent signal oracle operating on{' '}
           <span className="text-on-surface font-medium">Binance Smart Chain (BSC)</span>, engineered to decode
           market microstructure, detect liquidity anomalies, and surface high-conviction trade signals across
-          <span className="text-on-surface font-medium"> 40,000+ crypto, futures &amp; forex pairs</span> — in
+          <span className="text-on-surface font-medium"> 40,000+ crypto, futures &amp; forex pairs</span> in
           real time. Powered by a proprietary multi-layer neural engine and delivered through a conversational
           AI interface, Flap Signal gives every trader access to the kind of alpha that was once reserved for
           institutions.
         </p>
         <p className="text-on-surface-variant/70 text-sm md:text-base max-w-2xl mx-auto font-light leading-relaxed">
-          No charts to read. No lagging indicators. No guesswork. Just pure, verifiable, on-chain intelligence
-          — available at{' '}
+          No charts. No lagging indicators. No guesswork. Just pure, verifiable, on-chain intelligence available at{' '}
           <a href="https://flapsignal.org" className="text-secondary hover:text-secondary-container transition-colors underline underline-offset-2">
             flapsignal.org
           </a>
@@ -47,7 +46,7 @@ export const Hero = () => {
         <div className="bg-surface-container-high/40 p-4 border-b border-outline-variant/10 flex items-center justify-between backdrop-blur-md">
           <div className="flex items-center gap-3">
             <div className="w-2.5 h-2.5 rounded-full bg-secondary-container animate-pulse shadow-[0_0_10px_rgba(173,0,254,1)]"></div>
-            <span className="font-space-grotesk font-medium text-secondary tracking-wide">Flap Signal Chat — <span className="text-[10px] opacity-70">Secured</span></span>
+            <span className="font-space-grotesk font-medium text-secondary tracking-wide">Flap Signal Chat <span className="text-[10px] opacity-70">· Secured</span></span>
           </div>
           <div className="flex gap-2">
             <div className="w-3 h-3 rounded-full bg-white/10"></div>
