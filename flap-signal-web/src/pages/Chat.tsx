@@ -239,10 +239,21 @@ export const Chat = () => {
       setMessages(prev => prev.filter(m => m.id !== processingId));
 
       if (data.pairs && data.pairs.length > 0) {
-        // Deduplicate: one best pair per (symbol + chainId), ranked by liquidity
+        const cleanQuery = tokenQuery.replace('$', '').toLowerCase();
+
+        // Step 1: Prefer pairs where the BASE token exactly matches the query
+        // (catches native BNB, ETH, BTC etc. rather than pairs where they are quote tokens)
+        const nativePairs = data.pairs.filter((p: any) =>
+          p.baseToken.symbol.toLowerCase() === cleanQuery
+        );
+
+        // Fall back to all pairs if no exact base-token match (e.g. CA/address lookup)
+        const workingPairs = nativePairs.length > 0 ? nativePairs : data.pairs;
+
+        // Step 2: Deduplicate by chainId — keep the highest-liquidity pair per chain
         const seen = new Map<string, any>();
-        for (const p of data.pairs) {
-          const key = `${p.baseToken.symbol.toLowerCase()}-${p.chainId}`;
+        for (const p of workingPairs) {
+          const key = p.chainId;
           const liq = p.liquidity?.usd ?? 0;
           if (!seen.has(key) || liq > (seen.get(key).liquidity?.usd ?? 0)) {
             seen.set(key, p);
